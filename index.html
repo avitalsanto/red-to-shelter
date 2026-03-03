@@ -603,7 +603,7 @@
             } else {
                 this.x -= speed;
                 if (this.type !== 'FALAFEL' && this.type !== 'ARAK' && this.type !== 'CHRAIME' && this.type !== 'AMBA') {
-                    let ground = getGroundLevel(this.x, this.w);
+                    let ground = this.type === 'SHELTER' ? 210 : getGroundLevel(this.x, this.w);
                     this.y = ground - this.h;
                 } else {
                     let ground = getGroundLevel(this.x, this.w);
