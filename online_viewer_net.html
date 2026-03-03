@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>רצים למקלט - גרסת השטן</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #111;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            box-sizing: border-box;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 450px;
+            aspect-ratio: 16 / 9;
+            border: 4px solid #444;
+            background: #b4e4ff;
+            image-rendering: pixelated;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+        }
+
+        @media (max-width: 600px), (max-height: 600px) {
+            #game-container {
+                border: none;
+                aspect-ratio: auto;
+                height: 100%;
+                width: 100%;
+                max-width: none;
+                max-height: none;
+            }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            padding: 15px;
+            box-sizing: border-box;
+            z-index: 50;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .level-text { 
+            color: #facc15; 
+            font-size: 16px; 
+            font-weight: 900;
+            text-shadow: 2px 2px 0 #b45309, 3px 3px 0 rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        .hearts {
+            font-size: 20px;
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 4px;
+        }
+
+        .distance-meter {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #f1f5f9;
+            font-size: 13px;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px #000;
+            background: rgba(15,23,42,0.55);
+            padding: 6px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            letter-spacing: 0.5px;
+        }
+
+        .indicator-box {
+            position: absolute;
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .status-msg {
+            font-size: 11px;
+            font-weight: 800;
+            text-shadow: 1px 1px 2px #000;
+            display: none;
+            background: rgba(15,23,42,0.6);
+            padding: 4px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.08);
+            letter-spacing: 0.5px;
+        }
+
+        #boost-indicator { color: #facc15; }
+        #wings-indicator { color: #00ffff; }
+        #size-indicator { color: #ff6b6b; }
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 100;
+            text-align: center;
+            padding: 10px;
+            transition: opacity 0.5s;
+            overflow-y: auto;
+        }
+
+        .new-game-text {
+            font-size: 38px;
+            color: #facc15;
+            text-shadow:
+                3px 3px 0 #e85d04,
+                6px 6px 0 rgba(0,0,0,0.3);
+            margin-bottom: 12px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            -webkit-text-stroke: 1px #e85d04;
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .instructions {
+            font-size: 13px;
+            color: #e2e8f0;
+            text-shadow: 1px 1px 3px #000;
+            margin-bottom: 18px;
+            line-height: 1.7;
+            background: rgba(15,23,42,0.55);
+            padding: 14px 20px;
+            border-radius: 14px;
+            max-width: 85%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .instructions b {
+            color: #facc15;
+            font-size: 14px;
+        }
+
+        .btn-start {
+            background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
+            color: #1a1a2e;
+            border: 3px solid #fff;
+            padding: 16px 56px;
+            font-size: 22px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b45309, 0 8px 15px rgba(0,0,0,0.3);
+            pointer-events: auto;
+            transition: all 0.1s;
+            border-radius: 50px;
+            flex-shrink: 0;
+            letter-spacing: 1px;
+            text-shadow: none;
+        }
+
+        .btn-start:hover { background: linear-gradient(180deg, #fde047 0%, #facc15 100%); }
+        .btn-start:active { transform: translateY(4px); box-shadow: 0 2px 0 #b45309, 0 3px 8px rgba(0,0,0,0.2); }
+
+        @media (max-height: 400px) {
+            .new-game-text { font-size: 22px; margin-bottom: 5px; }
+            .instructions { font-size: 11px; padding: 8px 12px; margin-bottom: 8px; line-height: 1.4; }
+            .btn-start { padding: 10px 36px; font-size: 16px; }
+        }
+        .hidden { display: none !important; }
+
+        #rotate-msg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-align: center;
+            gap: 25px;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+        #rotate-msg .rotate-icon {
+            font-size: 60px;
+            animation: rotatePhone 2.5s ease-in-out infinite;
+        }
+        #rotate-msg .rotate-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: #facc15;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+            line-height: 1.4;
+            padding: 0 10px;
+        }
+        #rotate-msg .rotate-sub {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        #rotate-msg .rotate-arrow {
+            font-size: 36px;
+            animation: bounce-lr 1.5s ease-in-out infinite;
+        }
+        @keyframes rotatePhone {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+        @keyframes bounce-lr {
+            0%, 100% { transform: translateX(0); opacity: 0.5; }
+            50% { transform: translateX(10px); opacity: 1; }
+        }
+        @media (max-width: 900px) and (orientation: portrait) {
+            #rotate-msg { display: flex; }
+            #game-container { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="rotate-msg">
+    <div class="rotate-icon">📱</div>
+    <div class="rotate-title">סובב את המכשיר<br>לרוחב כדי לשחק</div>
+    <div class="rotate-arrow">↻</div>
+    <div class="rotate-sub">המשחק פועל רק במצב רוחבי</div>
+</div>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="level-text" id="level-ui">שלב 1</div>
+            <div class="hearts" id="hearts-ui">❤️❤️❤️</div>
+        </div>
+        
+        <div class="indicator-box">
+            <div id="boost-indicator" class="status-msg">⭐⭐ מהירות! ⭐⭐</div>
+            <div id="wings-indicator" class="status-msg">👼 ריחוף פלאפל! 👼</div>
+            <div id="size-indicator" class="status-msg">🐟 חריימה חריף! 🐟</div>
+            <div id="dino-indicator" class="status-msg" style="color:#22c55e">🦕 דינוזאור! 🦕</div>
+        </div>
+
+        <div class="distance-meter" id="dist-ui">מרחק: 0 מ'</div>
+
+        <div id="overlay">
+            <div class="new-game-text" id="title-text">רצים למקלט</div>
+            <div class="instructions" id="subtitle-text">
+                היזהר מהטילים והשטן! 😈<br>
+                קפוץ מעל מכשולים ואסוף בונוסים.<br>
+                <b>לחץ פעמיים לקפיצה גבוהה!</b><br>
+                ימין/שמאל: האצה/האטה
+            </div>
+            <button class="btn-start" id="start-btn">התחל</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- הגדרות משתנים גלובליים (חייבים להופיע ראשונים למניעת שגיאות) ---
+    const SCALE = 0.8; // הקטנה קלה לשיפור הפרופורציות במובייל
+    const V_HEIGHT = 270;
+    const BOOST_MULTIPLIER = 1.8;
+    const BOOST_DURATION = 150; 
+    const WINGS_DURATION = 120; 
+    const SIZE_DURATION = 120; 
+    const MANUAL_CONTROL_DURATION = 40;
+
+    const LEVEL_GOALS = [120, 300, 600, 950, 1400]; 
+    const LEVEL_SPEEDS = [1.5, 1.9, 2.4, 2.9, 3.5]; 
+    const LEVEL_SPAWN_RATES = [200, 160, 120, 95, 65]; 
+
+    const THEMES = [
+        { // 1: Tel Aviv City
+            skyTop: '#4a90d9', skyMid: '#7fc2fc', skyBot: '#b4e4ff',
+            grassTop: '#a8c868', grassZig: '#8eb848',
+            dirtBody: '#c8a060', dirtDetail: '#b89050',
+            sunColor: ['#fff3b0','#ffe066','#ffd700'],
+            cloudAlpha: 0.7, birdColor: '#333',
+        },
+        { // 2: Tel Aviv Beach
+            skyTop: '#3a85d6', skyMid: '#60b0f0', skyBot: '#a0d8ff',
+            grassTop: '#e8d4a0', grassZig: '#d4c090',
+            dirtBody: '#c8b480', dirtDetail: '#b8a470',
+            sunColor: ['#fff8d0','#ffe880','#ffd700'],
+            cloudAlpha: 0.5, birdColor: '#555',
+        },
+        { // 3: Judean Desert
+            skyTop: '#b07838', skyMid: '#c8a060', skyBot: '#e0c890',
+            grassTop: '#b89858', grassZig: '#a88848',
+            dirtBody: '#987838', dirtDetail: '#886828',
+            sunColor: ['#fff8d0','#ffe880','#ffcc00'],
+            cloudAlpha: 0.35, birdColor: '#8b6914',
+        },
+        { // 4: Jerusalem
+            skyTop: '#7a9fd0', skyMid: '#a8c4e0', skyBot: '#d0e0f0',
+            grassTop: '#c0b090', grassZig: '#b0a080',
+            dirtBody: '#c8b898', dirtDetail: '#b8a888',
+            sunColor: ['#fff3b0','#ffe066','#ffd700'],
+            cloudAlpha: 0.6, birdColor: '#444',
+        },
+        { // 5: Eilat
+            skyTop: '#1878b8', skyMid: '#30a0e0', skyBot: '#60c8f8',
+            grassTop: '#c87858', grassZig: '#b86848',
+            dirtBody: '#b06040', dirtDetail: '#a05838',
+            sunColor: ['#fff8e0','#ffe880','#ffcc00'],
+            cloudAlpha: 0.45, birdColor: '#333',
+        },
+    ];
+
+    const BOY_COLORS = { 'O': '#000', 'H': '#8b4513', 'S': '#ffdbac', 'C': '#d35400', 'P': '#2980b9', 'U': '#4b2c20', 'W': '#fff' };
+    const POOP_COLORS = { 'O': '#111827', 'B': '#5c3a21', 'L': '#8a5a33', 'W': '#ffffff', 'E': '#000000' };
+    const SKELETON_COLORS = { 'O': '#000000', 'W': '#ffffff', 'E': '#000000' };
+    const DEVIL_COLORS = { 'O': '#000', 'R': '#dc2626', 'P': '#991b1b', 'W': '#fff', 'E': '#000' };
+    const TRASH_COLORS = { 'O': '#000', 'S': '#9ca3af', 'D': '#4b5563', 'L': '#d1d5db' };
+    const FALAFEL_COLORS = { 'O': '#000', 'F': '#5c3a21', 'S': '#8a5a33' };
+    const ARAK_COLORS = { 'O': '#000', 'W': '#fff', 'C': '#1e3a8a', 'L': '#f1f5f9', 'G': '#22c55e' };
+    const CHRAIME_COLORS = { 'O': '#000', 'R': '#ef4444', 'W': '#fff', 'E': '#000', 'S': '#f87171' };
+    const MISSILE_COLORS = { 'O': '#000', 'G': '#334155', 'W': '#fff', 'R': '#ef4444', 'S': '#94a3b8', 'F': '#f97316' };
+    const SHELTER_COLORS = { 'O': '#000', 'B': '#e67e22', 'W': '#fef08a', 'D': '#7f8c8d', 'S': '#eab308', 'T': '#c0392b' };
+    const AMBA_COLORS = { 'O': '#000', 'J': '#e67e22', 'A': '#f59e0b', 'L': '#fbbf24', 'W': '#fff', 'C': '#d97706', 'G': '#92400e' };
+    const DINO_COLORS = { 'O': '#000', 'G': '#22c55e', 'D': '#16a34a', 'E': '#fff', 'P': '#000', 'M': '#dc2626', 'T': '#15803d' };
+
+    const boy_f1 = ["               OOOOOOOOO                ","             OOHHHHHHHHHOO              ","            OHHHHHHHHHHHHHO             ","           OHHHHHHHHHHHHHHHO            ","           OHHHHHHHHHHHHHHHO            ","          OHHHHSSSSSSSSSHHHHO           ","          OHHSSSSSSSSSSSSSHHO           ","          OHHSSSOOSSSSOOSSHHO           ","          OHHSSSOOSSSSOOSSHHO           ","          OOSSSSSSSSSSSSSSSOO           ","           OSSSSSSSSSSSSSSSO            ","           OSSSSSOOOOOSSSSSO            ","            OSSSSSSSSSSSSSO             ","             OSSSSSSSSSSSO              ","              OOOOOOOOOOO               ","             OOCCCCCCCCOOO              ","           OOOCCCCCCCCCCCOOO            ","          OOCCCCCCCCCCCCCCCOO           ","         OOCCCCCCCCCCCCCCCCCOO          ","         OOSSOCCCCCCCCCCCOSSOO          ","         OSSSOCCCCCCCCCCCOSSSO          ","         OSSSOCCCCCCCCCCCOSSSO          ","          OOOCCCCCCCCCCCCCCOO           ","             OCCCCCCCCCCCCO             ","             OOOPPPPPPPPOOO             ","              OOPPPPPPPPOO              ","              OPPPPPPPPPPO              ","              OPPPPPPPPPPO              ","              OPPPPPOOPPPO              ","             OOPPPPO OOPPPOO            ","             OPPPPPO OPPPPPO            ","             OPPPPPO OPPPPPO            ","            OOUUUUUO OUUUUUOO           ","           OOUUUUUUO OUUUUUUOO          ","           OOOOOOOOO OOOOOOOOO          "];
+    const boy_f2 = ["               OOOOOOOOO                ","             OOHHHHHHHHHOO              ","            OHHHHHHHHHHHHHO             ","           OHHHHHHHHHHHHHHHO            ","           OHHHHHHHHHHHHHHHO            ","          OHHHHSSSSSSSSSHHHHO           ","          OHHSSSSSSSSSSSSSHHO           ","          OHHSSSOOSSSSOOSSHHO           ","          OHHSSSOOSSSSOOSSHHO           ","          OOSSSSSSSSSSSSSSSOO           ","           OSSSSSSSSSSSSSSSO            ","           OSSSSSOOOOOSSSSSO            ","            OSSSSSSSSSSSSSO             ","             OSSSSSSSSSSSO              ","              OOOOOOOOOOO               ","             OOCCCCCCCCOOO              ","           OOOCCCCCCCCCCCOOO            ","          OOCCCCCCCCCCCCCCCOO           ","         OOCCCCCCCCCCCCCCCCCOO          ","         OOSSOCCCCCCCCCCCOSSOO          ","         OSSSOCCCCCCCCCCCOSSSO          ","         OSSSOCCCCCCCCCCCOSSSO          ","          OOOCCCCCCCCCCCCCCOO           ","             OCCCCCCCCCCCCO             ","             OOOPPPPPPPPOOO             ","              OOPPPPPPPPOO              ","              OPPPPPPPPPPO              ","              OPPPPPPPPPPO              ","             OOPPPPOOPPPPOO             ","            OOPPPPO  OOPPPPOO           ","           OOPPPPO    OOPPPPOO          ","           OPPPPO      OOPPPPO          ","          OOUUUUO      OOUUUUOO         ","         OOUUUUUO      OOUUUUUOO        ","         OOOOOOOO      OOOOOOOOO        "];
+    const poop_sprite = ["                  OOOO                  ","                 OLLBBO                 ","                OLLLBBBO                ","                OLLLBBBO                ","               OLLLLBBBBO               ","              OLLLLLBBBBBO              ","             OLLLLLLBBBBBBO             ","           OOOLLLLLLBBBBBBOOO           ","          OOLLLLLLLLBBBBBBBBOO          ","         OLLLLLLLLLLBBBBBBBBBBO         ","        OLLLLLLLLLLLBBBBBBBBBBBO        ","      OOOLLLLLLLLLLLBBBBBBBBBBBOOO      ","     OOLLLLLLLLLLLLLBBBBBBBBBBBBBOO     ","    OLLLLLLWWWWLLLLLBBBBBWWWWBBBBBBO    ","   OLLLLLLLWWWWWWLLLBBBWWWWWWBBBBBBBO   ","   OLLLLLLLWWEEWWLLLBBBWWEEWWBBBBBBBO   ","  OLLLLLLLLWWEEWWLLLBBBWWEEWWBBBBBBBBO  ","  OLLLLLLLLWWWWWWLLLBBBWWWWWWBBBBBBBBO  "," OOLLLLLLLLLWWWWLLLLBBBBWWWWBBBBBBBBBOO "," OLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBO "," OLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBO "," OLLLLLLLLLLLOOOOOOOOOOOOOOOBBBBBBBBBBO "," OLLLLLLLLLLOOWWWWWWWWWWWWOOBBBBBBBBBBO "," OOLLLLLLLLOOEEEEEEEEEEEEEEOOBBBBBBBBOO ","  OLLLLLLLLOOEEEEEEEEEEEEEEOOBBBBBBBBO  ","  OLLLLLLLLLOOEEEEEEEEEEEEOOBBBBBBBBBO  ","   OOLLLLLLLLOOOOOOOOOOOOOOBBBBBBBBOO   ","    OOOLLLLLLLLLLLLLBBBBBBBBBBBBBOOO    ","      OOOOLLLLLLLLLLBBBBBBBBBBOOOO      ","         OOOOOOOOOOOOOOOOOOOOOO         "];
+    const DEVIL2_COLORS = { 'O': '#000', 'R': '#dc2626', 'D': '#991b1b', 'W': '#fff', 'E': '#000', 'Y': '#facc15', 'T': '#ff6347' };
+    const devil_sprite = ["   OO                       OO          ","  OROO                     OORO         "," ORRRO                     ORRRO        "," ORRROO     OOOOOOOOO     OORRRO        "," ORRRROO  OORRRRRRRRROOO OORRRRRO       "," ORRRRRROORRRRRRRRRRRRRROORRRRRO        ","  ORRRRRRRRRRRRRRRRRRRRRRRRRRRO         ","  ORRRRRRRRRRRRRRRRRRRRRRRRRRRO         ","  ORRRROYYYYORRRRRROYYYYYORRRO          ","  ORRRROYYYEORRRRRROYYYEORRRRRO         ","  ORRRROYYYEORRRRRROYYYEORRRRRO         ","  ORRRROYYYYORRRRRROYYYYYORRRO          ","  ORRRRRRRRRRRRRRRRRRRRRRRRRRRO         ","   ORRRRRRRRRRRRRRRRRRRRRRRRO           ","   ORRRRDDDRRRRRRRRRRDDDRRRRO           ","    ORRRRRDDDDDDDDDDDDDRRRRRO           ","     ORRRRRRRRRRRRRRRRRRRRRRO           ","      ORRRRRRTTTTTTTTRRRRRRO            ","       OORRRRRRRRRRRRRRRROO             ","         OOOOOOOOOOOOOOOO               "];
+    const trash_sprite = ["          OOOOOOOOOOOOOOOOOO            ","         OLLLLLLLLLLLLLLLLLLO           ","        ODDDDDDDDDDDDDDDDDDDDO          ","        OLLLLLLLLLLLLLLLLLLLLO          ","        ODDDDDDDDDDDDDDDDDDDDO          ","         OSSSSSSSSSSSSSSSSSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSDDSSDDSSDSDDSSDSSO           ","         OSSSSSSSSSSSSSSSSSSO           ","          OOOOOOOOOOOOOOOOOO            ","           OO            OO             "];
+    const EXHAUST_COLORS = { 'O': '#000', 'Y': '#facc15', 'F': '#f97316', 'R': '#ef4444', 'W': '#fff' };
+    const vertical_missile_sprite = ["                   OOO                  ","                  ORRRO                 ","                 ORRRRRO                ","              OOOOSSSSOOOO              ","               OOSSSSSSO                ","               OOGGGGGGO                ","               OOGGGGGGO                ","               OOGGGGGGO                ","               OOGGGGGGO                ","               OOGGGGGGO                ","               OOWWWWWWO                ","               OORRRRRRO                ","                OORRRRO                 ","                 OORRO                  ","                  OOO                   "];
+    const arak_sprite = ["                  OOOOO                 ","                  OCCCCo                ","                  OCCCCo                ","                  OLLLLo                ","                  OLGGLo                ","                  OLGGLo                ","                  OLGGLo                ","                  OLGGLo                ","                 OOLLLLOO               ","               OOLLLLLLLLOO             ","              OLGGGGGGGGGGLLO           ","              OLGGWWWWWWGGGLO           ","              OLGGWWWWWWGGGLO           ","              OLGGWWWWWWGGGLO           ","              OLGGGGGGGGGGGLO           ","               OLLLLLLLLLLOO            ","                OOOOOOOOOO              "];
+    const falafel_sprite = ["               OOOOOO                   ","              OFFFFFFO                  ","              OFSFFFFO                  ","              OFFFFFFO   OOOOOO         ","               OOOOOO   OFFFFFFO        ","                        OFSFFFFO        ","               OOOOOO   OFFFFFFO        ","              OFFFFFFO   OOOOOO         ","              OFSFFFFO                  ","              OFFFFFFO                  ","               OOOOOO                   "];
+    const chraime_sprite = ["                                        ","               OOOOOO                   ","              ORRRRRRRO                 ","        OO   ORRRRRRRRRO                ","      ORRRO OORRRRRRRRRRRO              ","     ORRRRROORRRRRRRRRRRRRO             ","     ORRRRRRRRRRRRRRWWWWRRRO            ","     ORRRRRRRRRRRRRWWEEWWRRRO           ","     ORRRRRRRRRRRRRRWWWWRRRRO           ","     ORRRRROORRRRRRRRRRRRRRRO           ","      ORRRO OORRRRRRRRRRRRRO            ","        OO   ORRRRRRRRRRRO              ","              ORRRRRRRRO                ","               OOOOOO                   "];
+    const skeleton_sprite = ["                                        ","            OOOOOOOOOOOOOO              ","          OOWWWWWWWWWWWWWWOO            ","         OWWWWWWWWWWWWWWWWWWO           ","        OWWWWWWWWWWWWWWWWWWWWO          ","        OWWWWWWWWWWWWWWWWWWWWO          ","        OWWOOOOWWWWWWOOOOOWWWO          ","        OWOEEEOWWWWWOEEEEOWWWO          ","        OWOEEEOWWWWWOEEEEOWWWO          ","        OWOEEEOWWWWWOEEEEOWWWO          ","        OWWOOOOWWWWWWOOOOOWWWO          ","        OWWWWWWWWWWWWWWWWWWWWO          ","         OWWWWWWWOEOWWWWWWWWO           ","         OWWWWWWOEEEOWWWWWWWO           ","          OWWWWWWOEOWWWWWWWO            ","          OWWWWWWWWWWWWWWWWO            ","           OWOWOOWWOOWOOWO              ","           OWWWWWWWWWWWWWWO              ","           OWOWOOWWOOWOOWO              ","            OOOOOOOOOOOOOO              "];
+    const amba_sprite = ["                OOOO                    ","               OGGGGO                   ","               OGGGGO                   ","             OOOOOOOOOO                 ","            OAAAAAAAAAAAOO              ","           OAAWWWWWWWWWAAAO             ","           OAAWWWWWWWWWAAAO             ","           OAAWWWWWWWWWAAAO             ","            OOOOOOOOOOOOOO              ","            OJJJJJJJJJJJO              ","           OJJJJJJJJJJJJJOO            ","          OJJJJJJJJJJJJJJJOO           ","          OJJJJLLLLJJJJJJJJO           ","          OJJJJLLLLJJJJJJJJO           ","          OJJJJJJJJJJJJJJJJO           ","          OJJJJJJJJJJJJJJJJO           ","          OJJJJJJJJJJJJJJJJO           ","          OJJJJJJJCCCJJJJJJO           ","          OJJJJJJJCCCJJJJJJO           ","          OJJJJJJJJJJJJJJJJO           ","           OJJJJJJJJJJJJJJO            ","            OOOOOOOOOOOOOO              "];
+    const dino_f1 = ["                                        ","                  OOOOOOOOOO             ","                 OGGGGGGGGGO             ","                OGEEOGGGGGGO             ","                OGGGOGGGGGGGO            ","                OGMMMMMMGGGGO            ","                OGGGGGGGGGGGO            ","                 OGGGGGGGGO              ","                  OGGGGGGO               ","               OOOGGGGGGOO               ","              OGGGGGGGGGGO               ","             OGGGGGGGGGGGO               ","            OGGGGGGGGGGGGO               ","       OOOOOGGGGGGGGGGGGO                ","      OGGGGGGGGGGGGGGGGO                 ","       OGGGGGGGGGGGGGGGO                 ","        OOOOGGGGOOOGGGOO                 ","            OGGGO  OGGGO                 ","            OGGGO  OGGGO                 ","            OOOOO  OOOOO                "];
+    const dino_f2 = ["                                        ","                  OOOOOOOOOO             ","                 OGGGGGGGGGO             ","                OGEEOGGGGGGO             ","                OGGGOGGGGGGGO            ","                OGMMMMMMGGGGO            ","                OGGGGGGGGGGGO            ","                 OGGGGGGGGO              ","                  OGGGGGGO               ","               OOOGGGGGGOO               ","              OGGGGGGGGGGO               ","             OGGGGGGGGGGGO               ","            OGGGGGGGGGGGGO               ","       OOOOOGGGGGGGGGGGGO                ","      OGGGGGGGGGGGGGGGGO                 ","       OGGGGGGGGGGGGGGGO                 ","        OOOGGGGOOGGGGOO                  ","           OGGGGO OGGGGO                 ","          OGGGO    OGGGO                 ","          OOOOO    OOOOO                "];
+    const shelter_sprite = ["       OOOOOOOOOOOOOOOOOOOOOOOOOO       ","      OTTTTTTTTTTTTTTTTTTTTTTTTTTO      ","      OTTTTTTTTTTTTTTTTTTTTTTTTTTO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OOBWWOOOBWWOOOBWWOOOBWWOOOBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OOSSSSSSSSSSSSSSSSSSSSSSSSOO      ","      OOSSSSSSSSSSSSSSSSSSSSSSSSOO      ","      OBBBBBBBBBBBBBBBBBBBBBBBBBBO      ","      OBBOOOOBOOOOBOOOOBOOOOBOOOBO      ","      OBBODDDOODDDOODDDOODDDOODDBO      ","      OBBODDDOODDDOODDDOODDDOODDBO      ","      OBBODDDOODDDOODDDOODDDOODDBO      ","      OBBODDDOODDDOODDDOODDDOODDBO      ","      OBBODDDOODDDOODDDOODDDOODDBO      ","      OOOOOOOOOOOOOOOOOOOOOOOOOOOO      "];
+
+    // --- משתני המצב ---
+    let canvas, ctx, startBtn, overlay, boostUi, wingsUi, sizeUi;
+    let isPlaying = false;
+    let score = 0;
+    let currentLevel = 1;
+    let frame = 0;
+    let bgScroll = 0;
+    let obstacles = [];
+    let shelterMode = false;
+    let v_width = 480; 
+
+    let lives = 3;
+    let hitCooldown = 0;
+    let dinoTimer = 0;
+    let boostTimer = 0;
+    let wingsTimer = 0;
+    let sizeTimer = 0;
+    let manualBoostTimer = 0;
+    let manualSlowTimer = 0;
+
+    const STAIR_GROUPS = [
+        { start: 100, count: 3, sw: 22, sh: 12 },
+        { start: 500, count: 2, sw: 24, sh: 13 },
+        { start: 1000, count: 5, sw: 20, sh: 10 },
+        { start: 1550, count: 1, sw: 28, sh: 18 },
+    ];
+    const STAIR_REPEAT = 2100;
+
+    function buildStairSteps() {
+        const steps = [];
+        for (const g of STAIR_GROUPS) {
+            let x = g.start;
+            for (let i = 0; i < g.count; i++) {
+                steps.push({ start: x, w: g.sw, h: (i + 1) * g.sh });
+                x += g.sw;
+            }
+            // plateau at top
+            steps.push({ start: x, w: g.sw * 1.5, h: g.count * g.sh });
+        }
+        return steps;
+    }
+    const ALL_STEPS = buildStairSteps();
+
+    function getStepX(step) {
+        return (step.start - bgScroll % STAIR_REPEAT + STAIR_REPEAT) % STAIR_REPEAT - 80;
+    }
+
+    function getGroundLevel(px, pw) {
+        const baseGround = 210;
+        let highest = baseGround;
+        for (const step of ALL_STEPS) {
+            let sx = getStepX(step);
+            if (px + pw > sx + 2 && px < sx + step.w - 2) {
+                let level = baseGround - step.h;
+                if (level < highest) highest = level;
+            }
+        }
+        return highest;
+    }
+
+    // --- פונקציית הציור ---
+    function drawSprite(ctx, map, x, y, scale, colors) {
+        if (!map || !colors) return;
+        const size = Math.ceil(scale) + 0.6; 
+        for (let rIdx = 0; rIdx < map.length; rIdx++) {
+            const row = map[rIdx];
+            if (!row) continue;
+            for (let cIdx = 0; cIdx < row.length; cIdx++) {
+                const char = row[cIdx] || ' ';
+                if (char !== ' ') {
+                    ctx.fillStyle = colors[char] || '#000';
+                    ctx.fillRect(Math.floor(x + cIdx * scale), Math.floor(y + rIdx * scale), size, size);
+                }
+            }
+        }
+    }
+
+    // --- אובייקטים ---
+    const player = {
+        x: 60, 
+        w: 35 * SCALE, h: 35 * SCALE, 
+        dy: 0, jumpPower: -6.5, grav: 0.28,
+        jumpCount: 0, isJumping: false, anim: 0,
+        groundOffset: 0,
+        get baseY() { return (210 + this.groundOffset) - (35 * SCALE); },
+        get y() { return this.baseY + this.dy_pos; },
+        dy_pos: 0,
+        update(speedMult) {
+            let ground = getGroundLevel(this.x, this.w);
+            let newOffset = ground - 210;
+
+            if (wingsTimer > 0) {
+                this.groundOffset = newOffset;
+                this.dy_pos = -75; 
+                this.isJumping = false;
+                this.jumpCount = 0;
+                this.dy = 0;
+            } else if (this.isJumping || this.dy_pos < 0) {
+                this.dy += this.grav;
+                this.dy_pos += this.dy;
+                let feetY = (210 + this.groundOffset) + this.dy_pos;
+                if (this.dy > 0 && feetY >= ground) {
+                    this.groundOffset = newOffset;
+                    this.dy_pos = 0;
+                    this.dy = 0;
+                    this.isJumping = false;
+                    this.jumpCount = 0;
+                }
+            } else {
+                if (newOffset > this.groundOffset + 2) {
+                    this.dy_pos = this.groundOffset - newOffset;
+                    this.groundOffset = newOffset;
+                    this.isJumping = true;
+                    this.dy = 0;
+                } else {
+                    this.groundOffset = newOffset;
+                }
+                this.anim += 0.2 * speedMult;
+            }
+        },
+        draw(hasBoost, hasWings, hasSize) {
+            const isDino = dinoTimer > 0;
+            const frames = isDino ? [dino_f1, dino_f2] : [boy_f1, boy_f2];
+            const colors = isDino ? DINO_COLORS : BOY_COLORS;
+            const frameIdx = (this.isJumping || wingsTimer > 0) ? 1 : Math.floor(this.anim) % 2;
+            const bounce = (!this.isJumping && wingsTimer === 0) ? Math.sin(this.anim * Math.PI) * 2 : 0;
+            let currentScale = SCALE;
+            let sizeOffsetY = 0;
+            if (hasSize) {
+                currentScale *= 1.5;
+                sizeOffsetY = -(35 * SCALE * 0.5);
+            }
+            if (isDino) {
+                currentScale *= 1.15;
+                let dinoH = 20 * currentScale;
+                let normalH = 35 * SCALE;
+                sizeOffsetY += (normalH - dinoH);
+            }
+            let drawY = this.y + bounce + sizeOffsetY;
+            
+            if (wingsTimer === 0 && this.dy_pos === 0) {
+                let shadowY = 210 + this.groundOffset;
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath(); ctx.ellipse(this.x + (this.w/2), shadowY, 10 * (hasSize?1.5:1) * (isDino?1.2:1), 3, 0, 0, Math.PI*2); ctx.fill();
+            }
+            
+            if (hasWings) {
+                ctx.save();
+                ctx.globalAlpha = 0.6 + Math.sin(frame/5) * 0.3;
+                ctx.fillStyle = '#00ffff';
+                ctx.beginPath(); ctx.moveTo(this.x, drawY + 10); ctx.lineTo(this.x - 20, drawY - 15); ctx.lineTo(this.x, drawY + 25); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(this.x + this.w, drawY + 10); ctx.lineTo(this.x + this.w + 20, drawY - 15); ctx.lineTo(this.x + this.w, drawY + 25); ctx.fill();
+                ctx.restore();
+            }
+
+            if (hasBoost) {
+                ctx.globalAlpha = 0.4;
+                drawSprite(ctx, frames[frameIdx], this.x - 12, drawY, currentScale, colors);
+                ctx.globalAlpha = 1.0;
+            }
+            drawSprite(ctx, frames[frameIdx], this.x, drawY, currentScale, colors);
+        },
+        jump() { 
+            if (wingsTimer > 0) return;
+            if (this.jumpCount < 2) {
+                this.dy = this.jumpPower; 
+                this.isJumping = true;
+                this.jumpCount++;
+            }
+        }
+    };
+
+    class Entity {
+        constructor(type) {
+            const rand = Math.random();
+            if (type) { this.type = type; } 
+            else {
+                if (rand < 0.08) this.type = 'ARAK';
+                else if (rand < 0.16) this.type = 'FALAFEL';
+                else if (rand < 0.24) this.type = 'CHRAIME';
+                else if (rand < 0.30) this.type = 'AMBA';
+                else if (rand < 0.45) this.type = 'MISSILE'; 
+                else if (rand < 0.55) this.type = 'POOP';
+                else if (rand < 0.70) this.type = 'SKELETON';
+                else if (rand < 0.85) this.type = 'DEVIL';
+                else this.type = 'TRASH';
+            }
+            
+            let baseScale = SCALE;
+            if (this.type === 'POOP') baseScale = SCALE * 0.8;
+            if (this.type === 'SKELETON') baseScale = SCALE * 1.1;
+            if (this.type === 'DEVIL') baseScale = SCALE * 1.15;
+            this.scale = baseScale;
+            this.w = 35 * this.scale; 
+            this.h = 35 * this.scale; 
+            
+            if (this.type === 'MISSILE') {
+                this.x = 80 + Math.random() * (v_width - 150);
+                this.y = -60; 
+                this.speedY = 1.2 + Math.random() * 0.8;
+            } else {
+                this.x = v_width + 20;
+                this.y = 210 - this.h;
+                if (this.type === 'FALAFEL' || this.type === 'ARAK' || this.type === 'CHRAIME' || this.type === 'AMBA') {
+                    this.y = 120 + Math.random() * 70;
+                }
+                if(this.type === 'SHELTER') { 
+                    this.scale = 2.5 * SCALE; 
+                    this.w = 30 * this.scale; 
+                    this.h = 30 * this.scale;
+                    this.y = 210 - this.h; 
+                }
+            }
+        }
+        update(speed) { 
+            if (this.type === 'MISSILE') {
+                this.y += this.speedY; 
+                this.x -= speed * 0.2; 
+            } else {
+                this.x -= speed;
+                if (this.type !== 'FALAFEL' && this.type !== 'ARAK' && this.type !== 'CHRAIME' && this.type !== 'AMBA') {
+                    let ground = getGroundLevel(this.x, this.w);
+                    this.y = ground - this.h;
+                } else {
+                    let ground = getGroundLevel(this.x, this.w);
+                    if (this.y + this.h > ground) {
+                        this.y = ground - this.h - 5;
+                    }
+                }
+            }
+        }
+        drawLabel(text, color = '#fff', drawW) {
+            let w = drawW || this.w;
+            ctx.save();
+            ctx.font = 'bold 9px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+            ctx.strokeText(text, this.x + (w / 2), this.y - 8);
+            ctx.fillStyle = color; ctx.fillText(text, this.x + (w / 2), this.y - 8);
+            ctx.restore();
+        }
+        draw() {
+            if(this.type !== 'ARAK' && this.type !== 'FALAFEL' && this.type !== 'CHRAIME' && this.type !== 'MISSILE' && this.type !== 'AMBA') {
+                let shadowY = getGroundLevel(this.x, this.w);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath(); ctx.ellipse(this.x + (this.w/2), shadowY, 12, 3, 0, 0, Math.PI*2); ctx.fill();
+            }
+            if(this.type === 'ARAK') { let s = this.scale * 1.3; let sw = 40 * s; drawSprite(ctx, arak_sprite, this.x, this.y, s, ARAK_COLORS); this.drawLabel("ערק", "#60a5fa", sw); }
+            else if(this.type === 'POOP') drawSprite(ctx, poop_sprite, this.x, this.y, this.scale, POOP_COLORS);
+            else if(this.type === 'SKELETON') drawSprite(ctx, skeleton_sprite, this.x, this.y, this.scale, SKELETON_COLORS);
+            else if(this.type === 'DEVIL') drawSprite(ctx, devil_sprite, this.x, this.y, this.scale, DEVIL2_COLORS);
+            else if(this.type === 'TRASH') drawSprite(ctx, trash_sprite, this.x, this.y, this.scale, TRASH_COLORS);
+            else if(this.type === 'FALAFEL') { drawSprite(ctx, falafel_sprite, this.x, this.y, this.scale, FALAFEL_COLORS); this.drawLabel("פלאפל", "#fbbf24"); }
+            else if(this.type === 'CHRAIME') { drawSprite(ctx, chraime_sprite, this.x, this.y, this.scale * 0.9, CHRAIME_COLORS); this.drawLabel("חריימה", "#fff"); }
+            else if(this.type === 'AMBA') { drawSprite(ctx, amba_sprite, this.x, this.y, this.scale * 1.2, AMBA_COLORS); this.drawLabel("עמבה", "#f59e0b"); }
+            else if(this.type === 'MISSILE') {
+                let ms = this.scale * 1.5;
+                drawSprite(ctx, vertical_missile_sprite, this.x, this.y, ms, MISSILE_COLORS);
+                let cx = this.x + 20 * ms;
+                let ey = this.y;
+                let flicker = Math.sin(frame * 0.5) * 2;
+                let flicker2 = Math.cos(frame * 0.7) * 1.5;
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath(); ctx.moveTo(cx - 4 * ms, ey); ctx.lineTo(cx, ey - (10 + flicker) * ms); ctx.lineTo(cx + 4 * ms, ey); ctx.fill();
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath(); ctx.moveTo(cx - 3 * ms, ey); ctx.lineTo(cx + flicker2, ey - (7 + flicker) * ms); ctx.lineTo(cx + 3 * ms, ey); ctx.fill();
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.moveTo(cx - 2 * ms, ey); ctx.lineTo(cx, ey - (4 + flicker2) * ms); ctx.lineTo(cx + 2 * ms, ey); ctx.fill();
+            }
+            else if(this.type === 'SHELTER') {
+                let spriteW = 40 * this.scale;
+                drawSprite(ctx, shelter_sprite, this.x, this.y, this.scale, SHELTER_COLORS);
+                ctx.save(); ctx.fillStyle = '#000'; ctx.font = 'bold 18px Arial, sans-serif'; ctx.textAlign = 'center';
+                ctx.lineWidth = 4; ctx.strokeStyle = '#fff';
+                ctx.strokeText("מרחב מוגן", this.x + (spriteW / 2), this.y - 12);
+                ctx.fillText("מרחב מוגן", this.x + (spriteW / 2), this.y - 12);
+                ctx.restore();
+            }
+        }
+    }
+
+    // --- רקע וציור ---
+    function drawRoundRect(ctx, x, y, w, h, r) {
+        r = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.fill();
+    }
+
+    function drawSky() {
+        const T = THEMES[currentLevel - 1];
+        const grd = ctx.createLinearGradient(0, 0, 0, 210);
+        grd.addColorStop(0, T.skyTop);
+        grd.addColorStop(0.5, T.skyMid);
+        grd.addColorStop(1, T.skyBot);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, v_width, 210);
+
+        const sunX = v_width - 60;
+        ctx.fillStyle = T.sunColor[0];
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath(); ctx.arc(sunX, 35, 30, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = T.sunColor[1];
+        ctx.beginPath(); ctx.arc(sunX, 35, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = T.sunColor[2];
+        ctx.beginPath(); ctx.arc(sunX, 35, 12, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = 'rgba(255,255,255,' + T.cloudAlpha + ')';
+        const clouds = [{ x: 50, y: 25, r: 14 },{ x: 200, y: 40, r: 10 },{ x: 350, y: 20, r: 12 }];
+        for (const c of clouds) {
+            let cx = (c.x - (bgScroll * 0.05) % (v_width + 100) + v_width + 100) % (v_width + 100) - 50;
+            ctx.beginPath(); ctx.arc(cx, c.y, c.r, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx + c.r, c.y + 2, c.r * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx - c.r * 0.8, c.y + 2, c.r * 0.6, 0, Math.PI * 2); ctx.fill();
+        }
+
+        ctx.strokeStyle = T.birdColor;
+        ctx.lineWidth = 1;
+        for (let b = 0; b < 4; b++) {
+            let bx = (80 + b * 130 - (bgScroll * 0.3) % (v_width + 200) + v_width + 200) % (v_width + 200) - 100;
+            let by = 15 + b * 12 + Math.sin(frame * 0.08 + b) * 4;
+            ctx.beginPath();
+            ctx.moveTo(bx - 5, by + 2); ctx.quadraticCurveTo(bx - 2, by - 3, bx, by);
+            ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + 2, by - 3, bx + 5, by + 2);
+            ctx.stroke();
+        }
+    }
+
+    function drawSkyline() {
+        const lvl = currentLevel;
+        if (lvl === 1) drawSkylineTelAviv();
+        else if (lvl === 2) drawSkylineBeach();
+        else if (lvl === 3) drawSkylineDesert();
+        else if (lvl === 4) drawSkylineJerusalem();
+        else drawSkylineEilat();
+    }
+
+    function drawSkylineTelAviv() {
+        const segW = 300;
+        ctx.fillStyle = 'rgba(107,166,230,0.5)';
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.06) % segW;
+            ctx.fillRect(ox+20,120,18,90); ctx.fillRect(ox+50,100,15,110);
+            ctx.fillRect(ox+80,130,22,80); ctx.fillRect(ox+140,110,16,100);
+            ctx.fillRect(ox+200,125,20,85); ctx.fillRect(ox+250,105,14,105);
+        }
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.15) % segW;
+            ctx.fillStyle = '#5a8abf';
+            ctx.beginPath(); ctx.moveTo(ox+15,210); ctx.lineTo(ox+15,60); ctx.lineTo(ox+40,55); ctx.lineTo(ox+40,210); ctx.fill();
+            ctx.fillStyle = '#4a7aaf';
+            for (let wy = 62; wy < 205; wy += 12) { ctx.fillRect(ox+18,wy,6,5); ctx.fillRect(ox+28,wy,6,5); }
+            ctx.fillStyle = '#3a6a9f'; ctx.fillRect(ox+26,45,2,15);
+            ctx.fillStyle = '#6b96c4';
+            ctx.beginPath(); ctx.moveTo(ox+50,210); ctx.lineTo(ox+60,50); ctx.lineTo(ox+80,210); ctx.fill();
+            ctx.fillStyle = '#5a86b4';
+            for (let wy = 70; wy < 200; wy += 14) { let tw=((210-wy)/160)*12; ctx.fillRect(ox+60-tw/2,wy,tw,5); }
+            ctx.fillStyle = '#d4c9a8'; ctx.fillRect(ox+95,140,35,70);
+            ctx.fillStyle = '#c4b998'; ctx.fillRect(ox+97,142,31,2);
+            for (let wy = 148; wy < 205; wy += 12) { ctx.fillRect(ox+99,wy,6,7); ctx.fillRect(ox+109,wy,6,7); ctx.fillRect(ox+119,wy,6,7); }
+            ctx.fillStyle = '#baa978'; ctx.fillRect(ox+94,155,37,2); ctx.fillRect(ox+94,180,37,2);
+            ctx.fillStyle = '#7aaad4'; ctx.fillRect(ox+145,70,22,140);
+            ctx.fillStyle = '#6a9ac4';
+            for (let wy = 74; wy < 205; wy += 8) { ctx.fillRect(ox+148,wy,7,4); ctx.fillRect(ox+158,wy,7,4); }
+            ctx.fillRect(ox+153,60,4,12);
+            ctx.fillStyle = '#c8b888'; ctx.fillRect(ox+180,155,28,55);
+            ctx.fillStyle = '#e8d8b0';
+            for (let wy = 160; wy < 205; wy += 11) { ctx.fillRect(ox+183,wy,5,6); ctx.fillRect(ox+192,wy,5,6); ctx.fillRect(ox+200,wy,5,6); }
+            ctx.fillStyle = '#a08060'; ctx.fillRect(ox+220,175,30,35);
+            ctx.fillStyle = '#c0a080';
+            ctx.beginPath(); ctx.moveTo(ox+218,175); ctx.lineTo(ox+235,163); ctx.lineTo(ox+252,175); ctx.fill();
+            ctx.fillStyle = '#80603a'; ctx.fillRect(ox+228,190,8,20); ctx.fillRect(ox+224,180,5,6); ctx.fillRect(ox+240,180,5,6);
+            ctx.fillStyle = '#8db4d8'; ctx.fillRect(ox+265,85,16,125);
+            ctx.fillStyle = '#7da4c8';
+            for (let wy = 90; wy < 205; wy += 10) { ctx.fillRect(ox+268,wy,4,5); ctx.fillRect(ox+275,wy,4,5); }
+        }
+        const trees = [{off:80,h:50,w:44},{off:300,h:44,w:38},{off:500,h:52,w:46}];
+        for (const tree of trees) {
+            let tx = (tree.off - (bgScroll*0.22)%(v_width+250)+v_width+250)%(v_width+250)-125;
+            let gy=210, tw=tree.w, th=tree.h;
+            ctx.fillStyle = '#6b4226'; ctx.fillRect(tx-3,gy-th*0.55,6,th*0.55);
+            ctx.fillStyle = '#7a5232'; ctx.fillRect(tx-2,gy-th*0.55,2,th*0.55);
+            let cy=gy-th, cx=tx;
+            ctx.fillStyle='#1a4a1a'; drawRoundRect(ctx,cx-tw/2+1,cy+3,tw,th*0.55,8);
+            ctx.fillStyle='#2a6e2a'; drawRoundRect(ctx,cx-tw/2,cy,tw,th*0.52,8);
+            ctx.fillStyle='#358535'; drawRoundRect(ctx,cx-tw/2+4,cy-3,tw-8,th*0.42,7);
+            ctx.fillStyle='#4a9e4a'; drawRoundRect(ctx,cx-tw/2+8,cy-1,tw*0.4,th*0.28,5);
+            drawRoundRect(ctx,cx+2,cy-2,tw*0.35,th*0.25,5);
+        }
+    }
+
+    function drawSkylineBeach() {
+        const segW = 400;
+
+        // deep sea (dark blue gradient)
+        const seaGrd = ctx.createLinearGradient(0, 130, 0, 200);
+        seaGrd.addColorStop(0, '#1a6faa');
+        seaGrd.addColorStop(0.4, '#2088cc');
+        seaGrd.addColorStop(1, '#38a0dd');
+        ctx.fillStyle = seaGrd;
+        ctx.fillRect(0, 130, v_width, 70);
+
+        // horizon shimmer
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(0, 130, v_width, 2);
+
+        // rolling waves - layer 1 (far)
+        ctx.fillStyle = 'rgba(100,200,255,0.25)';
+        for (let x = -(bgScroll * 0.15) % 70; x < v_width + 70; x += 70) {
+            let wy = 148 + Math.sin(x * 0.04 + frame * 0.03) * 2;
+            ctx.beginPath();
+            ctx.moveTo(x, wy+4);
+            ctx.quadraticCurveTo(x+17, wy-2, x+35, wy+4);
+            ctx.quadraticCurveTo(x+52, wy+8, x+70, wy+4);
+            ctx.lineTo(x+70, wy+6); ctx.lineTo(x, wy+6);
+            ctx.fill();
+        }
+        // layer 2 (mid)
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        for (let x = -(bgScroll * 0.3) % 55; x < v_width + 55; x += 55) {
+            let wy = 165 + Math.sin(x * 0.06 + frame * 0.05) * 3;
+            ctx.beginPath();
+            ctx.moveTo(x, wy+3);
+            ctx.quadraticCurveTo(x+14, wy-3, x+28, wy+3);
+            ctx.quadraticCurveTo(x+42, wy+6, x+55, wy+3);
+            ctx.lineTo(x+55, wy+5); ctx.lineTo(x, wy+5);
+            ctx.fill();
+        }
+        // layer 3 (near shore) - foam
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        for (let x = -(bgScroll * 0.5) % 45; x < v_width + 45; x += 45) {
+            let wy = 185 + Math.sin(x * 0.08 + frame * 0.07) * 2;
+            ctx.beginPath();
+            ctx.moveTo(x, wy+2);
+            ctx.quadraticCurveTo(x+11, wy-2, x+22, wy+2);
+            ctx.quadraticCurveTo(x+34, wy+4, x+45, wy+2);
+            ctx.lineTo(x+45, wy+4); ctx.lineTo(x, wy+4);
+            ctx.fill();
+        }
+        // shore foam line
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        let foamY = 192 + Math.sin(frame * 0.04) * 1.5;
+        ctx.fillRect(0, foamY, v_width, 2);
+
+        // wet sand
+        ctx.fillStyle = '#c0a870';
+        ctx.fillRect(0, 194, v_width, 6);
+        // dry sand transition
+        ctx.fillStyle = '#d8c498';
+        ctx.fillRect(0, 200, v_width, 10);
+
+        // beach elements
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.18) % segW;
+
+            // lifeguard tower - white with red roof on stilts
+            ctx.fillStyle = '#8b6530';
+            ctx.fillRect(ox+32, 185, 3, 25); ctx.fillRect(ox+47, 185, 3, 25);
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(ox+28, 170, 26, 18);
+            ctx.fillStyle = '#cc3030';
+            ctx.beginPath(); ctx.moveTo(ox+25,170); ctx.lineTo(ox+41,158); ctx.lineTo(ox+57,170); ctx.fill();
+            ctx.fillStyle = '#40a0d0';
+            ctx.fillRect(ox+33, 175, 6, 8); ctx.fillRect(ox+43, 175, 6, 8);
+
+            // beach umbrella 1 - red/white stripes
+            ctx.fillStyle = '#8b5e3c'; ctx.fillRect(ox+111,172,2,38);
+            ctx.fillStyle = '#e04040';
+            ctx.beginPath(); ctx.moveTo(ox+95,192); ctx.lineTo(ox+112,168); ctx.lineTo(ox+129,192); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.moveTo(ox+100,188); ctx.lineTo(ox+107,175); ctx.lineTo(ox+112,188); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(ox+112,188); ctx.lineTo(ox+117,175); ctx.lineTo(ox+124,188); ctx.fill();
+
+            // beach umbrella 2 - blue/white
+            ctx.fillStyle = '#8b5e3c'; ctx.fillRect(ox+251,170,2,40);
+            ctx.fillStyle = '#3080c0';
+            ctx.beginPath(); ctx.moveTo(ox+235,190); ctx.lineTo(ox+252,166); ctx.lineTo(ox+269,190); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.moveTo(ox+240,186); ctx.lineTo(ox+247,173); ctx.lineTo(ox+252,186); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(ox+252,186); ctx.lineTo(ox+257,173); ctx.lineTo(ox+264,186); ctx.fill();
+
+            // towels on sand
+            ctx.fillStyle = '#e06060'; ctx.fillRect(ox+118,205,14,3);
+            ctx.fillStyle = '#40a0e0'; ctx.fillRect(ox+258,206,12,3);
+
+            // surfboard leaning
+            ctx.fillStyle = '#f0c040';
+            ctx.save(); ctx.translate(ox+180,202); ctx.rotate(-0.25);
+            ctx.beginPath(); ctx.moveTo(0,-16); ctx.quadraticCurveTo(3,-18,3,-16);
+            ctx.lineTo(3,16); ctx.quadraticCurveTo(3,18,0,16);
+            ctx.lineTo(0,-16); ctx.fill();
+            ctx.fillStyle = '#e0a020'; ctx.fillRect(0,-8,3,4);
+            ctx.restore();
+
+            // beach ball
+            let ballY = 204 + Math.sin(frame * 0.06 + i) * 0.8;
+            ctx.fillStyle = '#e04040';
+            ctx.beginPath(); ctx.arc(ox+330, ballY, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(ox+330, ballY, 4, -0.5, 0.8); ctx.fill();
+        }
+
+        // palm trees
+        const palms = [{off:70,h:70},{off:300,h:60},{off:500,h:66}];
+        for (const p of palms) {
+            let tx = (p.off-(bgScroll*0.22)%(v_width+250)+v_width+250)%(v_width+250)-125;
+            let gy=210, th=p.h;
+            // curved trunk
+            ctx.strokeStyle='#8b6530'; ctx.lineWidth=4; ctx.lineCap='round';
+            ctx.beginPath(); ctx.moveTo(tx,gy);
+            ctx.quadraticCurveTo(tx+6,gy-th*0.5,tx+3,gy-th*0.7);
+            ctx.stroke();
+            ctx.strokeStyle='#9b7540'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(tx+1,gy);
+            ctx.quadraticCurveTo(tx+7,gy-th*0.5,tx+4,gy-th*0.7);
+            ctx.stroke();
+            ctx.lineWidth=1;
+            // fronds
+            let topX=tx+3, topY=gy-th*0.7;
+            const fronds = [[-20,-8],[20,-6],[-16,4],[18,6],[-10,-14],[12,-12]];
+            for (const [fx,fy] of fronds) {
+                ctx.strokeStyle='#2a8a2a'; ctx.lineWidth=2;
+                ctx.beginPath(); ctx.moveTo(topX,topY);
+                ctx.quadraticCurveTo(topX+fx*0.6,topY+fy*0.4-5,topX+fx,topY+fy);
+                ctx.stroke();
+                ctx.strokeStyle='#3aa03a'; ctx.lineWidth=1;
+                for (let t = 0.3; t < 1; t += 0.2) {
+                    let lx=topX+fx*t, ly=topY+fy*t-5*(1-t);
+                    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx+fx*0.08,ly+3); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx-fx*0.08,ly+3); ctx.stroke();
+                }
+            }
+            // coconuts
+            ctx.fillStyle='#5a3a1a';
+            ctx.beginPath(); ctx.arc(topX-2,topY+2,2,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(topX+3,topY+3,2,0,Math.PI*2); ctx.fill();
+        }
+    }
+
+    function drawSkylineDesert() {
+        const segW = 350;
+        // far dunes
+        ctx.fillStyle = 'rgba(200,170,110,0.5)';
+        for (let x = -(bgScroll * 0.04) % segW; x < v_width + segW; x += segW) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.quadraticCurveTo(x+80,110,x+180,150);
+            ctx.quadraticCurveTo(x+250,170,x+350,210);
+            ctx.fill();
+        }
+        // mid dunes
+        ctx.fillStyle = '#d4b878';
+        for (let x = -(bgScroll * 0.08) % 300; x < v_width + 300; x += 300) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.quadraticCurveTo(x+60,140,x+140,165);
+            ctx.quadraticCurveTo(x+200,180,x+300,210);
+            ctx.fill();
+        }
+        // near dunes
+        ctx.fillStyle = '#c8a868';
+        for (let x = -(bgScroll * 0.14) % 250; x < v_width + 250; x += 250) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.quadraticCurveTo(x+50,160,x+120,178);
+            ctx.quadraticCurveTo(x+170,190,x+250,210);
+            ctx.fill();
+        }
+
+        // rock formations
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.12) % segW;
+            ctx.fillStyle = '#a08050';
+            ctx.beginPath(); ctx.moveTo(ox+40,210); ctx.lineTo(ox+50,170); ctx.lineTo(ox+55,165);
+            ctx.lineTo(ox+65,172); ctx.lineTo(ox+70,210); ctx.fill();
+            ctx.fillStyle = '#90704a';
+            ctx.beginPath(); ctx.moveTo(ox+180,210); ctx.lineTo(ox+195,155);
+            ctx.lineTo(ox+210,160); ctx.lineTo(ox+220,210); ctx.fill();
+            // dry bush
+            ctx.fillStyle = '#8a7a40';
+            ctx.beginPath(); ctx.arc(ox+130,205,6,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#7a6a30';
+            ctx.beginPath(); ctx.arc(ox+128,203,4,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#6a5a28';
+            ctx.fillRect(ox+129,205,2,5);
+            // another bush
+            ctx.fillStyle = '#9a8a48';
+            ctx.beginPath(); ctx.arc(ox+290,206,5,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#6a5a28';
+            ctx.fillRect(ox+289,206,2,4);
+        }
+    }
+
+    function drawSkylineJerusalem() {
+        const segW = 400;
+
+        // distant Judean hills - layered
+        ctx.fillStyle = 'rgba(170,155,130,0.3)';
+        for (let x = -(bgScroll * 0.02) % 500; x < v_width + 500; x += 500) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.quadraticCurveTo(x+60,100,x+150,130);
+            ctx.quadraticCurveTo(x+250,110,x+350,140);
+            ctx.quadraticCurveTo(x+450,155,x+500,210);
+            ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(180,165,140,0.35)';
+        for (let x = -(bgScroll * 0.04) % 450; x < v_width + 450; x += 450) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.quadraticCurveTo(x+80,130,x+180,155);
+            ctx.quadraticCurveTo(x+300,140,x+450,210);
+            ctx.fill();
+        }
+
+        // far old city silhouette
+        ctx.fillStyle = 'rgba(180,160,130,0.4)';
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.06) % segW;
+            ctx.fillRect(ox+10,140,160,70);
+            ctx.fillRect(ox+200,145,80,65);
+            ctx.fillRect(ox+310,150,60,60);
+        }
+
+        // main layer
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.12) % segW;
+
+            // Old City wall - Jerusalem stone texture
+            ctx.fillStyle = '#d4c098';
+            ctx.fillRect(ox+5,155,140,55);
+            // stone texture lines
+            ctx.fillStyle = '#c4b088';
+            for (let sy = 160; sy < 210; sy += 8) {
+                for (let sx = ox+5; sx < ox+145; sx += 16) {
+                    ctx.fillRect(sx, sy, 14, 1);
+                }
+            }
+            // crenellations
+            ctx.fillStyle = '#d4c098';
+            for (let cx = ox+5; cx < ox+145; cx += 12) {
+                ctx.fillRect(cx, 149, 8, 9);
+            }
+            ctx.fillStyle = '#c4b088';
+            for (let cx = ox+5; cx < ox+145; cx += 12) {
+                ctx.fillRect(cx, 149, 8, 1);
+            }
+
+            // David's Tower
+            ctx.fillStyle = '#c8b088';
+            ctx.fillRect(ox+15,110,22,100);
+            ctx.fillStyle = '#b8a078';
+            for (let sy = 115; sy < 210; sy += 8) { ctx.fillRect(ox+17, sy, 18, 1); }
+            // tower top crenellations
+            ctx.fillStyle = '#c8b088';
+            ctx.fillRect(ox+13,105,26,8);
+            for (let cx = ox+13; cx < ox+39; cx += 6) { ctx.fillRect(cx, 100, 4, 7); }
+            // tower windows
+            ctx.fillStyle = '#6a5a3a';
+            ctx.fillRect(ox+22,125,5,7); ctx.fillRect(ox+30,125,5,7);
+            ctx.fillRect(ox+22,145,5,7); ctx.fillRect(ox+30,145,5,7);
+
+            // Jaffa Gate
+            ctx.fillStyle = '#503820';
+            ctx.beginPath(); ctx.arc(ox+75,195,8,Math.PI,0); ctx.fill();
+            ctx.fillRect(ox+67,195,16,15);
+            // gate frame
+            ctx.fillStyle = '#d4c098';
+            ctx.fillRect(ox+65,185,2,25); ctx.fillRect(ox+83,185,2,25);
+
+            // Dome of the Rock - golden dome
+            ctx.fillStyle = '#c8a808';
+            ctx.fillRect(ox+185,148,50,62);
+            ctx.fillStyle = '#d4c098';
+            for (let sy = 153; sy < 210; sy += 7) { ctx.fillRect(ox+187, sy, 46, 1); }
+            // dome
+            ctx.fillStyle = '#e8c010';
+            ctx.beginPath(); ctx.arc(ox+210,148,22,Math.PI,0); ctx.fill();
+            // dome highlight
+            ctx.fillStyle = '#f0d830';
+            ctx.beginPath(); ctx.arc(ox+208,145,15,Math.PI+0.3,Math.PI*2-0.3); ctx.fill();
+            // crescent on top
+            ctx.fillStyle = '#f0d020';
+            ctx.fillRect(ox+209,122,2,8);
+            ctx.beginPath(); ctx.arc(ox+210,120,3,0,Math.PI*2); ctx.fill();
+            // arched windows
+            ctx.fillStyle = '#705810';
+            for (let wx = ox+192; wx < ox+228; wx += 12) {
+                ctx.fillRect(wx,165,6,12);
+                ctx.beginPath(); ctx.arc(wx+3,165,3,Math.PI,0); ctx.fill();
+            }
+            // decorative band
+            ctx.fillStyle = '#3070a0';
+            ctx.fillRect(ox+187,160,46,3);
+
+            // Al-Aqsa mosque
+            ctx.fillStyle = '#a09078';
+            ctx.fillRect(ox+245,160,40,50);
+            // silver dome
+            ctx.fillStyle = '#b0b0b0';
+            ctx.beginPath(); ctx.arc(ox+265,160,14,Math.PI,0); ctx.fill();
+            ctx.fillStyle = '#c8c8c8';
+            ctx.beginPath(); ctx.arc(ox+263,158,9,Math.PI+0.3,Math.PI*2-0.3); ctx.fill();
+            ctx.fillStyle = '#999';
+            ctx.fillRect(ox+264,143,2,5);
+
+            // Church of Holy Sepulchre domes
+            ctx.fillStyle = '#b8a888';
+            ctx.fillRect(ox+310,140,30,70);
+            ctx.fillStyle = '#a09070';
+            ctx.beginPath(); ctx.arc(ox+325,140,12,Math.PI,0); ctx.fill();
+            ctx.fillStyle = '#b0a080';
+            ctx.beginPath(); ctx.arc(ox+323,138,8,Math.PI+0.3,Math.PI*2-0.3); ctx.fill();
+            // cross
+            ctx.fillStyle = '#555';
+            ctx.fillRect(ox+324,122,2,10);
+            ctx.fillRect(ox+321,126,8,2);
+            // bell tower
+            ctx.fillStyle = '#c0a880';
+            ctx.fillRect(ox+340,120,12,90);
+            ctx.fillStyle = '#b09870';
+            ctx.fillRect(ox+338,116,16,6);
+            ctx.fillStyle = '#604830';
+            ctx.fillRect(ox+344,130,4,6); ctx.fillRect(ox+344,150,4,6);
+
+            // minaret
+            ctx.fillStyle = '#d0c0a0';
+            ctx.fillRect(ox+150,108,8,102);
+            ctx.fillStyle = '#c0b090';
+            ctx.fillRect(ox+148,105,12,5);
+            ctx.fillStyle = '#d0c0a0';
+            ctx.beginPath(); ctx.moveTo(ox+154,95); ctx.lineTo(ox+149,105); ctx.lineTo(ox+159,105); ctx.fill();
+            ctx.fillStyle = '#909080';
+            ctx.fillRect(ox+153,90,2,6);
+        }
+
+        // cypress trees
+        const cypresses = [{off:50,h:58},{off:200,h:50},{off:380,h:54},{off:520,h:46}];
+        for (const c of cypresses) {
+            let tx = (c.off-(bgScroll*0.2)%(v_width+300)+v_width+300)%(v_width+300)-150;
+            let gy=210, th=c.h;
+            // trunk
+            ctx.fillStyle='#5a4020'; ctx.fillRect(tx-1,gy-th*0.35,3,th*0.35);
+            // dark conical shape with layers
+            ctx.fillStyle='#1a4a18';
+            ctx.beginPath(); ctx.moveTo(tx,gy-th); ctx.lineTo(tx-7,gy-th*0.3); ctx.lineTo(tx+8,gy-th*0.3); ctx.fill();
+            ctx.fillStyle='#1e5a1c';
+            ctx.beginPath(); ctx.moveTo(tx,gy-th+6); ctx.lineTo(tx-5,gy-th*0.35); ctx.lineTo(tx+6,gy-th*0.35); ctx.fill();
+            ctx.fillStyle='#226a20';
+            ctx.beginPath(); ctx.moveTo(tx+1,gy-th+10); ctx.lineTo(tx-4,gy-th*0.4); ctx.lineTo(tx+5,gy-th*0.4); ctx.fill();
+        }
+
+        // olive tree
+        let otx = (160-(bgScroll*0.18)%(v_width+300)+v_width+300)%(v_width+300)-150;
+        ctx.fillStyle='#6a5030'; ctx.fillRect(otx-2,210-22,5,22);
+        ctx.fillStyle='#5a7a3a';
+        ctx.beginPath(); ctx.arc(otx,210-28,12,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#6a8a4a';
+        ctx.beginPath(); ctx.arc(otx-4,210-30,7,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(otx+5,210-26,6,0,Math.PI*2); ctx.fill();
+    }
+
+    function drawSkylineEilat() {
+        const segW = 350;
+        // red mountains
+        ctx.fillStyle = 'rgba(160,90,70,0.4)';
+        for (let x = -(bgScroll * 0.03) % 500; x < v_width + 500; x += 500) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.lineTo(x+80,100); ctx.lineTo(x+160,130);
+            ctx.lineTo(x+240,85); ctx.lineTo(x+340,120);
+            ctx.lineTo(x+500,210); ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(180,100,80,0.5)';
+        for (let x = -(bgScroll * 0.06) % 400; x < v_width + 400; x += 400) {
+            ctx.beginPath(); ctx.moveTo(x,210);
+            ctx.lineTo(x+60,130); ctx.lineTo(x+130,155);
+            ctx.lineTo(x+200,120); ctx.lineTo(x+280,150);
+            ctx.lineTo(x+400,210); ctx.fill();
+        }
+        // sea strip
+        ctx.fillStyle = '#1a88bb';
+        ctx.fillRect(0, 185, v_width, 25);
+        ctx.fillStyle = 'rgba(80,200,255,0.3)';
+        for (let x = -(bgScroll * 0.3) % 50; x < v_width + 50; x += 50) {
+            let wy = 190 + Math.sin(x * 0.06 + frame * 0.07) * 2;
+            ctx.fillRect(x, wy, 20, 1.5);
+        }
+
+        for (let i = -1; i < (v_width / segW) + 2; i++) {
+            let ox = i * segW - (bgScroll * 0.15) % segW;
+            // boat
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.moveTo(ox+80,192); ctx.lineTo(ox+72,200); ctx.lineTo(ox+96,200); ctx.lineTo(ox+88,192); ctx.fill();
+            ctx.fillStyle = '#e0e0e0'; ctx.fillRect(ox+83,185,2,8);
+            ctx.fillStyle = '#ff6040';
+            ctx.beginPath(); ctx.moveTo(ox+85,185); ctx.lineTo(ox+85,192); ctx.lineTo(ox+93,190); ctx.fill();
+            // coral hints at bottom
+            ctx.fillStyle = '#d05050';
+            ctx.beginPath(); ctx.arc(ox+200,208,3,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#e07030';
+            ctx.beginPath(); ctx.arc(ox+210,207,4,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#d06060';
+            ctx.beginPath(); ctx.arc(ox+260,209,2.5,0,Math.PI*2); ctx.fill();
+            // dolphin
+            let dy = 195 + Math.sin(frame*0.05+i)*4;
+            ctx.fillStyle = '#607890';
+            ctx.beginPath();
+            ctx.moveTo(ox+310,dy); ctx.quadraticCurveTo(ox+320,dy-6,ox+330,dy-2);
+            ctx.quadraticCurveTo(ox+325,dy+2,ox+310,dy);
+            ctx.fill();
+            ctx.beginPath(); ctx.moveTo(ox+330,dy-2); ctx.lineTo(ox+335,dy-6); ctx.lineTo(ox+336,dy); ctx.fill();
+        }
+        // desert bushes near ground
+        const bushes = [{off:90},{off:280},{off:460}];
+        for (const b of bushes) {
+            let bx = (b.off-(bgScroll*0.2)%(v_width+250)+v_width+250)%(v_width+250)-125;
+            ctx.fillStyle='#8a6a30';
+            ctx.beginPath(); ctx.arc(bx,206,5,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#7a5a28';
+            ctx.beginPath(); ctx.arc(bx-2,204,3,0,Math.PI*2); ctx.fill();
+        }
+    }
+
+    function drawPixelGround() {
+        const groundY = 210;
+        const T = THEMES[currentLevel - 1];
+
+        ctx.fillStyle = T.grassTop; ctx.fillRect(0, groundY, v_width, 6);
+        ctx.fillStyle = T.grassZig;
+        for (let x = - (bgScroll % 10); x < v_width + 10; x += 10) {
+            ctx.beginPath(); ctx.moveTo(x, groundY + 6); ctx.lineTo(x + 5, groundY + 12); ctx.lineTo(x + 10, groundY + 6); ctx.fill();
+        }
+        ctx.fillStyle = T.dirtBody; ctx.fillRect(0, groundY + 10, v_width, 50);
+        ctx.fillStyle = T.dirtDetail;
+        for (let x = - (bgScroll % 30); x < v_width + 30; x += 30) {
+            ctx.fillRect(x, groundY + 12, 14, 3);
+            ctx.fillRect(x + 15, groundY + 25, 12, 3);
+        }
+
+        for (const step of ALL_STEPS) {
+            let sx = getStepX(step);
+            if (sx > v_width + 10 || sx + step.w < -10) continue;
+            let top = groundY - step.h;
+            ctx.fillStyle = T.dirtBody;
+            ctx.fillRect(sx, top + 6, step.w, step.h + 4);
+            ctx.fillStyle = T.grassTop;
+            ctx.fillRect(sx, top, step.w, 6);
+            ctx.fillStyle = T.grassZig;
+            for (let gx = sx; gx < sx + step.w; gx += 10) {
+                let w = Math.min(10, sx + step.w - gx);
+                ctx.beginPath();
+                ctx.moveTo(gx, top + 6); ctx.lineTo(gx + w/2, top + 12); ctx.lineTo(gx + w, top + 6);
+                ctx.fill();
+            }
+        }
+    }
+
+    function update() {
+        frame++;
+        let speedMult = 1;
+        if (hitCooldown > 0) hitCooldown--;
+        if (dinoTimer > 0) { dinoTimer--; const dinoUi = document.getElementById('dino-indicator'); if(dinoUi) dinoUi.style.display = 'block'; } else { const dinoUi = document.getElementById('dino-indicator'); if(dinoUi) dinoUi.style.display = 'none'; }
+        if (boostTimer > 0) { boostTimer--; speedMult = BOOST_MULTIPLIER; if(boostUi) boostUi.style.display = 'block'; } else { if(boostUi) boostUi.style.display = 'none'; }
+        if (wingsTimer > 0) { wingsTimer--; wingsUi.style.display = 'block'; } else { if(wingsUi) wingsUi.style.display = 'none'; }
+        if (sizeTimer > 0) { sizeTimer--; sizeUi.style.display = 'block'; } else { if(sizeUi) sizeUi.style.display = 'none'; }
+        if (manualBoostTimer > 0) { manualBoostTimer--; speedMult *= 1.4; }
+        if (manualSlowTimer > 0) { manualSlowTimer--; speedMult *= 0.6; }
+
+        let baseGameSpeed = LEVEL_SPEEDS[currentLevel - 1];
+        let activeSpeed = isPlaying ? (baseGameSpeed * speedMult) : 0.5; 
+        bgScroll += activeSpeed; 
+        if (!isPlaying) return; 
+
+        player.update(speedMult);
+        let goal = LEVEL_GOALS[currentLevel - 1];
+
+        if(score >= goal && !shelterMode) {
+            obstacles.push(new Entity('SHELTER'));
+            shelterMode = true;
+        }
+
+        let safetyBuffer = Math.min(60, goal * 0.2); 
+        let spawnRate = Math.floor(LEVEL_SPAWN_RATES[currentLevel - 1] / (baseGameSpeed * speedMult));
+        if(!shelterMode && score < (goal - safetyBuffer) && frame % Math.max(30, spawnRate) === 0) {
+            obstacles.push(new Entity());
+        }
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const o = obstacles[i]; o.update(baseGameSpeed * speedMult);
+            let pW = player.w; let pH = player.h;
+            let pY = player.y;
+            if (sizeTimer > 0) { pW *= 1.5; pH *= 1.5; pY -= (35 * SCALE * 0.5); }
+            const pBox = { x: player.x+5, y: pY+5, w: pW-10, h: pH-10 };
+            let oBox = { x: o.x + 5, y: o.y + 5, w: o.w - 10, h: o.h - 10 };
+            if (pBox.x < oBox.x + oBox.w && pBox.x + pBox.w > oBox.x && pBox.y < oBox.y + oBox.h && pBox.y + pBox.h > oBox.y) {
+                if(o.type === 'SHELTER') { endLevel(true); } 
+                else if(o.type === 'ARAK') { boostTimer = BOOST_DURATION; score += 15; obstacles.splice(i, 1); } 
+                else if(o.type === 'FALAFEL') { wingsTimer = WINGS_DURATION; score += 20; obstacles.splice(i, 1); } 
+                else if(o.type === 'CHRAIME') { sizeTimer = SIZE_DURATION; score += 10; let maxLives = currentLevel >= 4 ? 5 : 3; if(lives < maxLives) { lives++; updateHeartsUI(); } obstacles.splice(i, 1); }
+                else if(o.type === 'AMBA') { dinoTimer = 180; score += 15; obstacles.splice(i, 1); }
+                else if(o.type === 'MISSILE') { hit(); }
+                else { if (wingsTimer === 0 && player.dy_pos > -30) hit(); }
+            } else if (o.x < -100 || o.y > V_HEIGHT + 100) { obstacles.splice(i, 1); }
+        }
+        if(!shelterMode) { score += (baseGameSpeed * speedMult) * 0.05; }
+        const distText = document.getElementById('dist-ui');
+        if(distText) distText.innerText = "מרחק: " + Math.floor(score) + "/" + goal + " מ'";
+    }
+
+    function hit() { 
+        if (hitCooldown > 0) return;
+        lives--;
+        updateHeartsUI();
+        if(ctx) { ctx.fillStyle = 'rgba(255,0,0,0.5)'; ctx.fillRect(0,0,v_width,V_HEIGHT); }
+        if (lives <= 0) {
+            endLevel(false);
+        } else {
+            hitCooldown = 90;
+        }
+    }
+
+    function updateHeartsUI() {
+        const heartsEl = document.getElementById('hearts-ui');
+        if (!heartsEl) return;
+        let txt = '';
+        let maxLives = currentLevel >= 4 ? 5 : 3;
+        for (let i = 0; i < maxLives; i++) {
+            txt += i < lives ? '❤️' : '🖤';
+        }
+        heartsEl.innerText = txt;
+    }
+
+    function render() {
+        if (!ctx) return;
+        ctx.save(); 
+        ctx.scale(canvas.height / V_HEIGHT, canvas.height / V_HEIGHT);
+        ctx.clearRect(0, 0, v_width, V_HEIGHT);
+        drawSky(); drawSkyline(); drawPixelGround();
+        if (isPlaying) {
+            obstacles.forEach(o => o.draw());
+            if (hitCooldown > 0 && Math.floor(frame / 4) % 2 === 0) {
+                ctx.globalAlpha = 0.3;
+            }
+            player.draw(boostTimer > 0, wingsTimer > 0, sizeTimer > 0);
+            ctx.globalAlpha = 1;
+        } else {
+            player.draw(false, false, false);
+        }
+        ctx.restore(); requestAnimationFrame(render);
+    }
+
+    function endLevel(win) {
+        isPlaying = false; 
+        if(overlay) { overlay.classList.remove('hidden'); overlay.style.opacity = "1"; }
+        const titleText = document.getElementById('title-text');
+        const startBtnText = document.getElementById('start-btn');
+        if (win) {
+            if (currentLevel < 5) {
+                if(titleText) titleText.innerText = "שלב " + currentLevel + " עבר!";
+                if(startBtnText) startBtnText.innerText = "המשך לשלב " + (currentLevel + 1); currentLevel++;
+            } else {
+                if(titleText) titleText.innerText = "ניצחת!";
+                if(startBtnText) startBtnText.innerText = "שוב"; currentLevel = 1;
+            }
+        } else {
+            if(titleText) titleText.innerText = "נפסלת!"; 
+            if(startBtnText) startBtnText.innerText = "נסה שוב";
+        }
+    }
+
+    function initGame() {
+        score = 0; boostTimer = 0; wingsTimer = 0; sizeTimer = 0; dinoTimer = 0; manualBoostTimer = 0; manualSlowTimer = 0;
+        lives = currentLevel >= 4 ? 5 : 3; hitCooldown = 0;
+        obstacles = []; isPlaying = true; shelterMode = false;
+        updateHeartsUI();
+        const levelText = document.getElementById('level-ui');
+        if(levelText) levelText.innerText = "שלב " + currentLevel;
+        if(overlay) {
+            overlay.style.opacity = "0";
+            setTimeout(() => overlay.classList.add('hidden'), 500);
+        }
+    }
+
+    function resize() {
+        if (!canvas) return;
+        const rect = canvas.parentNode.getBoundingClientRect();
+        canvas.width = rect.width; canvas.height = rect.height;
+        v_width = (canvas.width / canvas.height) * V_HEIGHT;
+        if (ctx) ctx.imageSmoothingEnabled = false;
+    }
+
+    window.onload = () => {
+        canvas = document.getElementById('gameCanvas');
+        ctx = canvas.getContext('2d');
+        startBtn = document.getElementById('start-btn');
+        overlay = document.getElementById('overlay');
+        boostUi = document.getElementById('boost-indicator');
+        wingsUi = document.getElementById('wings-indicator');
+        sizeUi = document.getElementById('size-indicator');
+        resize();
+        if(startBtn) startBtn.addEventListener('click', initGame);
+        window.addEventListener('keydown', e => { 
+            if (isPlaying) {
+                if (e.code === 'Space' || e.code === 'ArrowUp') player.jump(); 
+                if (e.code === 'ArrowRight') { manualBoostTimer = MANUAL_CONTROL_DURATION; manualSlowTimer = 0; }
+                if (e.code === 'ArrowLeft') { manualSlowTimer = MANUAL_CONTROL_DURATION; manualBoostTimer = 0; }
+                if (e.code === 'Digit0') endLevel(true);
+            }
+        });
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchHandled = false;
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchHandled = false;
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            if (!isPlaying || touchHandled) return;
+            const dx = e.touches[0].clientX - touchStartX;
+            const dy = e.touches[0].clientY - touchStartY;
+            if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+                touchHandled = true;
+                if (dx > 0) { manualBoostTimer = MANUAL_CONTROL_DURATION; manualSlowTimer = 0; }
+                else { manualSlowTimer = MANUAL_CONTROL_DURATION; manualBoostTimer = 0; }
+            }
+        }, { passive: false });
+        canvas.addEventListener('touchend', e => {
+            e.preventDefault();
+            if (!touchHandled && isPlaying) player.jump();
+        }, { passive: false });
+        window.addEventListener('resize', resize);
+        setInterval(update, 1000/60);
+        requestAnimationFrame(render);
+    }
+</script>
+</body>
+</html>
