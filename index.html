@@ -254,7 +254,7 @@
             0%, 100% { transform: translateX(0); opacity: 0.5; }
             50% { transform: translateX(10px); opacity: 1; }
         }
-        @media (max-width: 900px) and (orientation: portrait) {
+        @media (max-width: 900px) and (max-aspect-ratio: 1/1) {
             #rotate-msg { display: flex; }
             #game-container { display: none; }
         }
@@ -1512,6 +1512,7 @@
             if (!touchHandled && isPlaying) player.jump();
         }, { passive: false });
         window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', () => { setTimeout(resize, 150); });
         setInterval(update, 1000/60);
         requestAnimationFrame(render);
     }
